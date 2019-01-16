@@ -7,9 +7,13 @@ You have to make the bash scripts executables by using this command:
 */
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -73,11 +77,52 @@ func handleCalls(path string) {
 	fmt.Println("saved new kernels")
 }
 
+func sendToSlack(webhookurl string) {
+	fmt.Println("Sending new kernel alert to slack")
+	var jsonStr = []byte(`{"text":"Buy cheese and bread for breakfast."}`)
+	req, err := http.NewRequest("POST", webhookurl, bytes.NewReader(jsonStr))
+	req.Header.Set("X-Custom-Header", "myvalue")
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	fmt.Println("response Status:", resp.Status)
+	fmt.Println("response Headers:", resp.Header)
+	body, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println("response Body:", string(body))
+}
+
+type Config struct {
+	Webhookurl string `json:"webhookurl"`
+}
+
+func LoadConfiguration(file string) Config {
+	fmt.Println("Loading config file")
+	var config Config
+	configFile, err := os.Open(file)
+	defer configFile.Close()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	jsonParser := json.NewDecoder(configFile)
+	jsonParser.Decode(&config)
+	return config
+}
+
 func main() {
 	const path string = "/Users/curtis/go/src/github.com/curtischong/lizzie_alerts/kaggleKernelWorker/"
-	const durationBetweenCalls = 2 * time.Hour
-	for {
-		go handleCalls(path)
-		time.Sleep(durationBetweenCalls)
+	config := LoadConfiguration(path + "config.json")
+	sendToSlack(config.Webhookurl)
+	if false {
+		const durationBetweenCalls = 2 * time.Hour
+		for {
+			go handleCalls(path)
+			time.Sleep(durationBetweenCalls)
+		}
 	}
 }
