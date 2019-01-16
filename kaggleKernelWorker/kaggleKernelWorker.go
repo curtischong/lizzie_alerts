@@ -28,7 +28,7 @@ func readLastSeen(path string) string {
 	return contents
 }
 
-func handleCalls(path string) {
+func handleCalls(path string, slackurl string) {
 	fmt.Println("Executing query")
 	out, err := exec.Command(path + "getCompetitions.sh").Output()
 	if err != nil {
@@ -75,11 +75,25 @@ func handleCalls(path string) {
 		panic(err)
 	}
 	fmt.Println("saved new kernels")
+
+	// format data to send to slack
+	message := string(numNewKernels) + "{'text': '```New Kernels:\n"
+	for i := 0; i < numNewKernels; i++ {
+		message += "https://kaggle.com/" + data[i+1][0] + "\n"
+		message += data[i+1][1] + "\n"
+		message += data[i+1][2] + "\n"
+		message += data[i+1][4]
+		if i != numNewKernels-1 {
+			message += "\n\n"
+		}
+	}
+	message += "```'}"
+	sendToSlack(slackurl, message)
 }
 
-func sendToSlack(webhookurl string) {
+func sendToSlack(webhookurl string, message string) {
 	fmt.Println("Sending new kernel alert to slack")
-	var jsonStr = []byte(`{"text":"Buy cheese and bread for breakfast."}`)
+	var jsonStr = []byte(message)
 	req, err := http.NewRequest("POST", webhookurl, bytes.NewReader(jsonStr))
 	req.Header.Set("X-Custom-Header", "myvalue")
 	req.Header.Set("Content-Type", "application/json")
@@ -117,12 +131,10 @@ func LoadConfiguration(file string) Config {
 func main() {
 	const path string = "/Users/curtis/go/src/github.com/curtischong/lizzie_alerts/kaggleKernelWorker/"
 	config := LoadConfiguration(path + "config.json")
-	sendToSlack(config.Webhookurl)
-	if false {
-		const durationBetweenCalls = 2 * time.Hour
-		for {
-			go handleCalls(path)
-			time.Sleep(durationBetweenCalls)
-		}
+
+	const durationBetweenCalls = 2 * time.Hour
+	for {
+		go handleCalls(path, config.Webhookurl)
+		time.Sleep(durationBetweenCalls)
 	}
 }
