@@ -39,12 +39,12 @@ func handleCalls(path string, slackurl string) {
 	var kernelRef []string
 	rows := strings.Split(string(out), "\n")
 
-	for i := 0; i < len(rows); i++ {
+  fmt.Println("The first res is: ", rows[0])
+
+	for i := 1; i < len(rows); i++ {
 		cells := strings.Split(rows[i], ",")
 		data = append(data, cells)
-		if i != 0 {
-			kernelRef = append(kernelRef, cells[0])
-		}
+    kernelRef = append(kernelRef, cells[0])
 	}
 
 	fmt.Println("reading last seenFile")
@@ -64,11 +64,13 @@ func handleCalls(path string, slackurl string) {
 	for i := 0; i < len(kernelRef); i++ {
 		if kernelRef[i] != lastSeenContentsArr[0] {
 			numNewKernels++
-		}
+		}else{
+      break;
+    }
 	}
 	fmt.Printf("found %d new kernels.", numNewKernels)
 	// save to file
-	fmt.Println("saving new kernels", numNewKernels)
+	fmt.Println("saving new kernels")
 	newKernelsSeen := strings.Join(kernelRef, ",")
 	err = ioutil.WriteFile("lastSeen.txt", []byte(newKernelsSeen), 0644)
 	if err != nil {
@@ -79,12 +81,12 @@ func handleCalls(path string, slackurl string) {
 	// format data to send to slack
 	message := string(numNewKernels) + "{'text': '```New Kernels:\n"
 	for i := 0; i < numNewKernels; i++ {
-		message += "https://kaggle.com/" + data[i+1][0] + "\n"
-		message += data[i+1][1] + "\n"
-		message += data[i+1][2] + "\n"
-		message += data[i+1][4]
+		message += "https://kaggle.com/" + data[i][0] + "\n"
+		message += data[i][1] + "\n"
+		message += data[i][2] + "\n"
+		message += data[i][4] + "\n\n"
 		if i != numNewKernels-1 {
-			message += "\n\n"
+		//	message += "\n\n"
 		}
 	}
 	message += "```'}"
@@ -93,6 +95,7 @@ func handleCalls(path string, slackurl string) {
 
 func sendToSlack(webhookurl string, message string) {
 	fmt.Println("Sending new kernel alert to slack")
+	fmt.Println(message)
 	var jsonStr = []byte(message)
 	req, err := http.NewRequest("POST", webhookurl, bytes.NewReader(jsonStr))
 	req.Header.Set("X-Custom-Header", "myvalue")
@@ -129,7 +132,8 @@ func LoadConfiguration(file string) Config {
 }
 
 func main() {
-	const path string = "/Users/curtis/go/src/github.com/curtischong/lizzie_alerts/kaggleKernelWorker/"
+
+	const path string = "/usr/local/go/src/github.com/curtischong/lizzie_alerts/kaggleKernelWorker/"
 	config := LoadConfiguration(path + "config.json")
 
 	const durationBetweenCalls = 2 * time.Hour
