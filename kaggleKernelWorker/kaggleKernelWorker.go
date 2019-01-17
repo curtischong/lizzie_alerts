@@ -7,7 +7,7 @@ You have to make the bash scripts executables by using this command:
 */
 
 import (
-	"bytes"
+  "strconv"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -82,14 +82,14 @@ func handleCalls(path string, slackurl string) {
 	fmt.Println("saved new kernels")
 
 	// format data to send to slack
-	message := string(numNewKernels) + "{\"text\": \"```New Kernels:\n"
+	message := "{\"text\": \"```" + strconv.Itoa(numNewKernels) + " New Kernel(s):\n"
 	for i := 0; i < numNewKernels; i++ {
 		message += ("https://kaggle.com/" + data[i][0] + "\n")
 		message += (data[i][1] + "\n")
 		message += (data[i][2] + "\n")
-		message += (data[i][4]) + "\n\n"
+		message += (data[i][4])// + "\n\n"
 		if i != numNewKernels-1 {
-			//message += ("\n\n")
+			message += ("\n\n")
 		}
 	}
 	message += ("```\"}")
@@ -98,12 +98,8 @@ func handleCalls(path string, slackurl string) {
 
 func sendToSlack(webhookurl string, message string) {
 	fmt.Println("Sending new kernel alert to slack")
-	fmt.Println(message)
-	//var jsonStr = []byte(message)
-  fixedStr := bytes.NewBufferString(message)
-  fmt.Println(fixedStr)
+  fixedStr := strings.NewReader(message)
 	req, err := http.NewRequest("POST", webhookurl, fixedStr)
-	//req, err := http.NewRequest("POST", webhookurl, bytes.NewReader(jsonStr))
 	req.Header.Set("X-Custom-Header", "myvalue")
 	req.Header.Set("Content-Type", "application/json")
 
@@ -114,8 +110,8 @@ func sendToSlack(webhookurl string, message string) {
 	}
 	defer resp.Body.Close()
 
-	fmt.Println("response Status:", resp.Status)
-	fmt.Println("response Headers:", resp.Header)
+	//fmt.Println("response Status:", resp.Status)
+	//fmt.Println("response Headers:", resp.Header)
 	body, _ := ioutil.ReadAll(resp.Body)
 	fmt.Println("response Body:", string(body))
 }
