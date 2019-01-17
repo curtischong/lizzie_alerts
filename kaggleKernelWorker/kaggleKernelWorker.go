@@ -38,7 +38,8 @@ func handleCalls(path string, slackurl string) {
 	var data [][]string
 	var kernelRef []string
 	rows := strings.Split(string(out), "\n")
-
+  
+  //Why are we printing this? bc if the curl command gives us an error we'll know
   fmt.Println("The first res is: ", rows[0])
 
 	for i := 1; i < len(rows); i++ {
@@ -79,17 +80,17 @@ func handleCalls(path string, slackurl string) {
 	fmt.Println("saved new kernels")
 
 	// format data to send to slack
-	message := string(numNewKernels) + "{'text': '```New Kernels:\n"
+	message := string(numNewKernels) + "{\"text\": \"```New Kernels:\n"
 	for i := 0; i < numNewKernels; i++ {
-		message += "https://kaggle.com/" + data[i][0] + "\n"
-		message += data[i][1] + "\n"
-		message += data[i][2] + "\n"
-		message += data[i][4] + "\n\n"
+		message += ("https://kaggle.com/" + data[i][0] + "\n")
+		message += (data[i][1] + "\n")
+		message += (data[i][2] + "\n")
+		message += (data[i][4])// + "\n\n"
 		if i != numNewKernels-1 {
-		//	message += "\n\n"
+			message += ("\n\n")
 		}
 	}
-	message += "```'}"
+	message += ("```\"}")
 	sendToSlack(slackurl, message)
 }
 
