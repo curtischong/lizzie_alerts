@@ -38,14 +38,16 @@ func handleCalls(path string, slackurl string) {
 	var data [][]string
 	var kernelRef []string
 	rows := strings.Split(string(out), "\n")
-  
+
   //Why are we printing this? bc if the curl command gives us an error we'll know
   fmt.Println("The first res is: ", rows[0])
 
 	for i := 1; i < len(rows); i++ {
-		cells := strings.Split(rows[i], ",")
-		data = append(data, cells)
-    kernelRef = append(kernelRef, cells[0])
+    if rows[i] != ""{
+      cells := strings.Split(rows[i], ",")
+      data = append(data, cells)
+      kernelRef = append(kernelRef, cells[0])
+    }
 	}
 
 	fmt.Println("reading last seenFile")
@@ -85,9 +87,9 @@ func handleCalls(path string, slackurl string) {
 		message += ("https://kaggle.com/" + data[i][0] + "\n")
 		message += (data[i][1] + "\n")
 		message += (data[i][2] + "\n")
-		message += (data[i][4])// + "\n\n"
+		message += (data[i][4]) + "\n\n"
 		if i != numNewKernels-1 {
-			message += ("\n\n")
+			//message += ("\n\n")
 		}
 	}
 	message += ("```\"}")
@@ -97,8 +99,11 @@ func handleCalls(path string, slackurl string) {
 func sendToSlack(webhookurl string, message string) {
 	fmt.Println("Sending new kernel alert to slack")
 	fmt.Println(message)
-	var jsonStr = []byte(message)
-	req, err := http.NewRequest("POST", webhookurl, bytes.NewReader(jsonStr))
+	//var jsonStr = []byte(message)
+  fixedStr := bytes.NewBufferString(message)
+  fmt.Println(fixedStr)
+	req, err := http.NewRequest("POST", webhookurl, fixedStr)
+	//req, err := http.NewRequest("POST", webhookurl, bytes.NewReader(jsonStr))
 	req.Header.Set("X-Custom-Header", "myvalue")
 	req.Header.Set("Content-Type", "application/json")
 
