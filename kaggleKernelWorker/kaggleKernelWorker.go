@@ -39,6 +39,11 @@ func handleCalls(path string, slackurl string) {
 	var kernelRef []string
 	rows := strings.Split(string(out), "\n")
 
+  if strings.Contains(rows[0], "502 - Bad Gateway") {
+    //The connection is down rn. better to wait another 4 hours than to crash
+    return
+  }
+
   //Why are we printing this? bc if the curl command gives us an error we'll know
   fmt.Println("The first res is: ", rows[0])
 
@@ -68,7 +73,7 @@ func handleCalls(path string, slackurl string) {
 		if kernelRef[i] != lastSeenContentsArr[0] {
 			numNewKernels++
 		}else{
-      break;
+      break
     }
 	}
 	fmt.Printf("found %d new kernels.", numNewKernels)
