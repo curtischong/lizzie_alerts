@@ -7,7 +7,6 @@ You have to make the bash scripts executables by using this command:
 */
 
 import (
-  "strconv"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -15,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -39,20 +39,20 @@ func handleCalls(path string, slackurl string) {
 	var kernelRef []string
 	rows := strings.Split(string(out), "\n")
 
-  if strings.Contains(rows[0], "502 - Bad Gateway") {
-    //The connection is down rn. better to wait another 4 hours than to crash
-    return
-  }
+	if strings.Contains(rows[0], "502 - Bad Gateway") {
+		//The connection is down rn. better to wait another 4 hours than to crash
+		return
+	}
 
-  //Why are we printing this? bc if the curl command gives us an error we'll know
-  fmt.Println("The first res is: ", rows[0])
+	//Why are we printing this? bc if the curl command gives us an error we'll know
+	fmt.Println("The first res is: ", rows[0])
 
 	for i := 1; i < len(rows); i++ {
-    if rows[i] != ""{
-      cells := strings.Split(rows[i], ",")
-      data = append(data, cells)
-      kernelRef = append(kernelRef, cells[0])
-    }
+		if rows[i] != "" {
+			cells := strings.Split(rows[i], ",")
+			data = append(data, cells)
+			kernelRef = append(kernelRef, cells[0])
+		}
 	}
 
 	fmt.Println("reading last seenFile")
@@ -72,9 +72,9 @@ func handleCalls(path string, slackurl string) {
 	for i := 0; i < len(kernelRef); i++ {
 		if kernelRef[i] != lastSeenContentsArr[0] {
 			numNewKernels++
-		}else{
-      break
-    }
+		} else {
+			break
+		}
 	}
 	fmt.Printf("found %d new kernels.", numNewKernels)
 	// save to file
@@ -92,7 +92,7 @@ func handleCalls(path string, slackurl string) {
 		message += ("https://kaggle.com/" + data[i][0] + "\n")
 		message += (data[i][1] + "\n")
 		message += (data[i][2] + "\n")
-		message += (data[i][4])// + "\n\n"
+		message += (data[i][4]) // + "\n\n"
 		if i != numNewKernels-1 {
 			message += ("\n\n")
 		}
@@ -103,7 +103,7 @@ func handleCalls(path string, slackurl string) {
 
 func sendToSlack(webhookurl string, message string) {
 	fmt.Println("Sending new kernel alert to slack")
-  fixedStr := strings.NewReader(message)
+	fixedStr := strings.NewReader(message)
 	req, err := http.NewRequest("POST", webhookurl, fixedStr)
 	req.Header.Set("X-Custom-Header", "myvalue")
 	req.Header.Set("Content-Type", "application/json")
