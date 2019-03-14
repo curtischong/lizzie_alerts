@@ -55,7 +55,7 @@ func handleCalls(path string, slackurl string) {
 		// use new kernels
 	}
 	lastSeenContentsArr := strings.Split(lastSeenContents, ",")
-	if kernelRef[0] == lastSeenContentsArr[0] {
+	if len(lastSeenContentsArr) == 0 || kernelRef[0] == lastSeenContentsArr[0] {
 		fmt.Println("No new updates.")
 		// no new kernels trigger loop here
 		return
