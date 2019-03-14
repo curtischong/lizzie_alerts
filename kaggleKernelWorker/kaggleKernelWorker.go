@@ -7,7 +7,7 @@ You have to make the bash scripts executables by using this command:
 */
 
 import (
-	"bytes"
+  "strconv"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -39,12 +39,20 @@ func handleCalls(path string, slackurl string) {
 	var kernelRef []string
 	rows := strings.Split(string(out), "\n")
 
-	for i := 0; i < len(rows); i++ {
-		cells := strings.Split(rows[i], ",")
-		data = append(data, cells)
-		if i != 0 {
-			kernelRef = append(kernelRef, cells[0])
-		}
+  if strings.Contains(rows[0], "502 - Bad Gateway") {
+    //The connection is down rn. better to wait another 4 hours than to crash
+    return
+  }
+
+  //Why are we printing this? bc if the curl command gives us an error we'll know
+  fmt.Println("The first res is: ", rows[0])
+
+	for i := 1; i < len(rows); i++ {
+    if rows[i] != ""{
+      cells := strings.Split(rows[i], ",")
+      data = append(data, cells)
+      kernelRef = append(kernelRef, cells[0])
+    }
 	}
 
 	fmt.Println("reading last seenFile")
@@ -64,11 +72,13 @@ func handleCalls(path string, slackurl string) {
 	for i := 0; i < len(kernelRef); i++ {
 		if kernelRef[i] != lastSeenContentsArr[0] {
 			numNewKernels++
-		}
+		}else{
+      break
+    }
 	}
 	fmt.Printf("found %d new kernels.", numNewKernels)
 	// save to file
-	fmt.Println("saving new kernels", numNewKernels)
+	fmt.Println("saving new kernels")
 	newKernelsSeen := strings.Join(kernelRef, ",")
 	err = ioutil.WriteFile("lastSeen.txt", []byte(newKernelsSeen), 0644)
 	if err != nil {
@@ -77,24 +87,24 @@ func handleCalls(path string, slackurl string) {
 	fmt.Println("saved new kernels")
 
 	// format data to send to slack
-	message := string(numNewKernels) + "{'text': '```New Kernels:\n"
+	message := "{\"text\": \"```" + strconv.Itoa(numNewKernels) + " New Kernel(s):\n"
 	for i := 0; i < numNewKernels; i++ {
-		message += "https://kaggle.com/" + data[i+1][0] + "\n"
-		message += data[i+1][1] + "\n"
-		message += data[i+1][2] + "\n"
-		message += data[i+1][4]
+		message += ("https://kaggle.com/" + data[i][0] + "\n")
+		message += (data[i][1] + "\n")
+		message += (data[i][2] + "\n")
+		message += (data[i][4])// + "\n\n"
 		if i != numNewKernels-1 {
-			message += "\n\n"
+			message += ("\n\n")
 		}
 	}
-	message += "```'}"
+	message += ("```\"}")
 	sendToSlack(slackurl, message)
 }
 
 func sendToSlack(webhookurl string, message string) {
 	fmt.Println("Sending new kernel alert to slack")
-	var jsonStr = []byte(message)
-	req, err := http.NewRequest("POST", webhookurl, bytes.NewReader(jsonStr))
+  fixedStr := strings.NewReader(message)
+	req, err := http.NewRequest("POST", webhookurl, fixedStr)
 	req.Header.Set("X-Custom-Header", "myvalue")
 	req.Header.Set("Content-Type", "application/json")
 
@@ -105,8 +115,8 @@ func sendToSlack(webhookurl string, message string) {
 	}
 	defer resp.Body.Close()
 
-	fmt.Println("response Status:", resp.Status)
-	fmt.Println("response Headers:", resp.Header)
+	//fmt.Println("response Status:", resp.Status)
+	//fmt.Println("response Headers:", resp.Header)
 	body, _ := ioutil.ReadAll(resp.Body)
 	fmt.Println("response Body:", string(body))
 }
@@ -129,7 +139,8 @@ func LoadConfiguration(file string) Config {
 }
 
 func main() {
-	const path string = "/Users/curtis/go/src/github.com/curtischong/lizzie_alerts/kaggleKernelWorker/"
+
+	const path string = "/usr/local/go/src/github.com/curtischong/lizzie_alerts/kaggleKernelWorker/"
 	config := LoadConfiguration(path + "config.json")
 
 	const durationBetweenCalls = 2 * time.Hour
