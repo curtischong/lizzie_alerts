@@ -57,14 +57,14 @@ func handleCalls(path, slackurl string) {
 		// Use new kernels
 	}
 	lastSeenContentsArr := bytes.Split(lastSeenContents, []byte(","))
-	if len(lastSeenContentsArr) == 0 || bytes.Compare(kernelRef[0], lastSeenContentsArr[0]) == 0 {
+	if len(lastSeenContentsArr) == 0 || bytes.Equal(kernelRef[0], lastSeenContentsArr[0]) {
 		fmt.Println("No new updates.")
 		// No new kernels trigger loop here
 		return
 	}
 	numNewKernels := 0
 	for i := 0; i < len(kernelRef); i++ {
-		if bytes.Compare(kernelRef[i], lastSeenContentsArr[0]) == 0 {
+		if bytes.Equal(kernelRef[i], lastSeenContentsArr[0]) {
 			break
 		}
 		numNewKernels++
@@ -73,7 +73,7 @@ func handleCalls(path, slackurl string) {
 	// save to file
 	fmt.Println("saving new kernels")
 	newKernelsSeen := bytes.Join(kernelRef, []byte(","))
-	err = ioutil.WriteFile("lastSeen.txt", []byte(newKernelsSeen), 0644)
+	err = ioutil.WriteFile("lastSeen.txt", newKernelsSeen, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -103,6 +103,9 @@ func sendToSlack(webhookurl, message string) {
 	fmt.Println("Sending new kernel alert to slack")
 	fixedStr := strings.NewReader(message)
 	req, err := http.NewRequest("POST", webhookurl, fixedStr)
+	if err != nil {
+		log.Fatal(err)
+	}
 	req.Header.Set("X-Custom-Header", "myvalue")
 	req.Header.Set("Content-Type", "application/json")
 
@@ -120,6 +123,7 @@ func sendToSlack(webhookurl, message string) {
 	}
 }
 
+// Config
 type Config struct {
 	Webhookurl string `json:"webhookurl"`
 }
@@ -133,7 +137,10 @@ func LoadConfiguration(file string) Config {
 	}
 	defer configFile.Close()
 	jsonParser := json.NewDecoder(configFile)
-	jsonParser.Decode(&config)
+	err = jsonParser.Decode(&config)
+	if err != nil {
+		log.Fatal(err)
+	}
 	return config
 }
 
